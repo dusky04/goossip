@@ -70,5 +70,11 @@ template <typename T>
 GArray<T> init_array_with_scalar_value(std::vector<usize> &shape, T val);
 
 // ------------------------------------------------------------------
+// Matrix Multiplication
+// TODO: Try more cache friendly matrix multiplication
+// Convert to blocked matrix multiplication
+template <typename T> GArray<T> matmul(const GArray<T> &a, const GArray<T> &b);
+
+// ------------------------------------------------------------------
 // Utility Functions
 template <typename T> void print_array(const GArray<T> &arr);

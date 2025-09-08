@@ -88,12 +88,12 @@ template GArray<f64> init_with_ones<f64>(std::vector<usize> &shape);
 
 // FIX: Switch to a iterative algorithm
 template <typename T>
-static void _print_array(const GArray<T> &a, size_t cur_depth, size_t offset) {
+static void _print_array(const GArray<T> &a, usize cur_depth, usize offset) {
   if (cur_depth == a.ndim - 1) {
     // dimension small enough that we can print each element
     std::cout << "[";
-    for (size_t i = 0; i < a.shape[cur_depth]; i++) {
-      size_t cur_offset = offset + (a.strides[cur_depth] * i);
+    for (usize i = 0; i < a.shape[cur_depth]; i++) {
+      usize cur_offset = offset + (a.strides[cur_depth] * i);
       std::cout << a.data[cur_offset] << ", ";
     }
     printf("]");
@@ -102,8 +102,8 @@ static void _print_array(const GArray<T> &a, size_t cur_depth, size_t offset) {
   // we are the nth dimension, iterate over all the elements in this
   // dimension
   printf("[");
-  for (size_t i = 0; i < a.shape[cur_depth]; i++) {
-    size_t new_offset = offset + (i * a.strides[cur_depth]);
+  for (usize i = 0; i < a.shape[cur_depth]; i++) {
+    usize new_offset = offset + (i * a.strides[cur_depth]);
     _print_array(a, cur_depth + 1, new_offset);
   }
   printf("]\n");
@@ -265,6 +265,89 @@ template <typename T> GArray<T> GArray<T>::operator/(const GArray<T> &other) {
   return _element_wise_op(*this, other,
                           [](const T &a, const T &b) { return a / b; });
 }
+
+// TODO: implement getting single element from a array to clean up this
+// code but VERY MUCH LATER DOWN the LINE
+// TODO: research into if this could be made cache-friendlier
+template <typename T>
+static inline void _matmul_2D(const GArray<T> &a, const GArray<T> &b,
+                              GArray<T> &c, usize offset_a, usize offset_b,
+                              usize offset_c) {
+  usize m = a.shape[a.ndim - 2];
+  usize n = a.shape[a.ndim - 1];
+  usize q = b.shape[b.ndim - 1];
+
+  // iterate over the rows of matrix a
+  for (usize i = 0; i < m; i++) {
+    // iterate over the columns of matrix b
+    for (usize j = 0; j < q; j++) {
+      f64 sum = 0;
+      for (usize k = 0; k < n; k++) {
+        usize ai =
+            offset_a + i * a.strides[a.ndim - 2] + k * a.strides[a.ndim - 1];
+        usize bi =
+            offset_b + k * b.strides[b.ndim - 2] + j * b.strides[b.ndim - 1];
+
+        sum += a.data[ai] * b.data[bi];
+      }
+
+      usize ci =
+          offset_c + i * c.strides[c.ndim - 2] + j * c.strides[c.ndim - 1];
+      c.data[ci] = sum;
+    }
+  }
+}
+
+template <typename T>
+static inline void _matmul(const GArray<T> &a, const GArray<T> &b, GArray<T> &c,
+                           usize offset_a, usize offset_b, usize offset_c,
+                           i32 depth) {
+  if (depth == (i32)c.ndim - 2) {
+    _matmul_2D(a, b, c, offset_a, offset_b, offset_c);
+    return;
+  }
+
+  // we are at the nth dimension, move over every element in this
+  // dimension
+  for (usize i = 0; i < c.shape[depth]; i++) {
+    usize new_offset_a = offset_a + i * a.strides[depth];
+    usize new_offset_b = offset_b + i * b.strides[depth];
+    usize new_offset_c = offset_c + i * c.strides[depth];
+    _matmul(a, b, c, new_offset_a, new_offset_b, new_offset_c, depth + 1);
+  }
+}
+
+// TODO: research into if this could be made cache-friendlier
+template <typename T> GArray<T> matmul(const GArray<T> &a, const GArray<T> &b) {
+  // shape of cols of mat a should match shape of rows of mat b
+  usize m = a.shape[a.ndim - 2];
+  usize n = a.shape[a.ndim - 1];
+  usize p = b.shape[b.ndim - 2];
+  usize q = b.shape[b.ndim - 1];
+
+  if (n != p)
+    throw std::runtime_error("SHAPE ERROR: Cannot multiply (" +
+                             std::to_string(m) + " x " + std::to_string(n) +
+                             ") with (" + std::to_string(p) + " x " +
+                             std::to_string(q) + ")");
+
+  // calculate the new shape
+  std::vector<usize> c_shape(a.ndim);
+  for (usize i = 0; i < a.ndim - 2; i++)
+    c_shape[i] = a.shape[i];
+  c_shape[a.ndim - 2] = m;
+  c_shape[a.ndim - 1] = q;
+
+  auto c = init_with_zeros<T>(c_shape);
+  _matmul(a, b, c, 0, 0, 0, 0);
+
+  return c;
+}
+
+template GArray<i32> matmul(const GArray<i32> &a, const GArray<i32> &b);
+template GArray<i64> matmul(const GArray<i64> &a, const GArray<i64> &b);
+template GArray<f32> matmul(const GArray<f32> &a, const GArray<f32> &b);
+template GArray<f64> matmul(const GArray<f64> &a, const GArray<f64> &b);
 
 // Binary Arithmetic Operations
 // ------------------------------------------------------------------
