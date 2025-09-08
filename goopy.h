@@ -1,6 +1,5 @@
 #pragma once
 
-#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -52,7 +51,9 @@ static inline usize _numel(const std::vector<usize> &shape) {
   return num_elements;
 }
 
-// Moves the shape to the object so that it owns it
+// -----------------------------------------------------------------------------
+// Array Initialisation Functions
+//  Moves the shape to the object so that it owns it
 template <typename T> GArray<T> init_with_ones(std::vector<usize> &shape);
 template <typename T> GArray<T> init_with_zeros(std::vector<usize> &shape);
 template <typename T>

@@ -1,7 +1,6 @@
 #include "goopy.h"
 
 #include <iostream>
-#include <memory>
 #include <stdlib.h>
 #include <vector>
 
@@ -40,6 +39,9 @@ bool static inline _check_equal_shapes(const std::vector<usize> &a_shape,
   return (a_shape.size() == b_shape.size() && a_shape == b_shape);
 }
 
+// ------------------------------------------------------------------
+// Array Initialisation Functions
+
 template <typename T>
 GArray<T> init_array_with_scalar_value(std::vector<usize> &shape, T val) {
   usize num_elements = _numel(shape);
@@ -76,8 +78,13 @@ template GArray<i64> init_with_ones<i64>(std::vector<usize> &shape);
 template GArray<f32> init_with_ones<f32>(std::vector<usize> &shape);
 template GArray<f64> init_with_ones<f64>(std::vector<usize> &shape);
 
+// Array Initialisation Functions
+// ------------------------------------------------------------------
+
+// ------------------------------------------------------------------
+// Utility Functions
+
 // FIX: Switch to a iterative algorithm
-// FIX: Update the array pointer rather than using [] syntax
 template <typename T>
 static void _print_array(const GArray<T> &a, size_t cur_depth, size_t offset) {
   if (cur_depth == a.ndim - 1) {
@@ -108,13 +115,17 @@ template void print_array<i64>(const GArray<i64> &a);
 template void print_array<f32>(const GArray<f32> &a);
 template void print_array<f64>(const GArray<f64> &a);
 
-// ---------------------------------------------------------------------
+// Utility Functions
+// ------------------------------------------------------------------
+
+// ------------------------------------------------------------------
+// Broadcasting Helper Functions
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
-bool _check_broadcastable_shapes(const std::vector<usize> &a_shape,
-                                 const std::vector<usize> &b_shape) {
+static bool _check_broadcastable_shapes(const std::vector<usize> &a_shape,
+                                        const std::vector<usize> &b_shape) {
   i32 i = MIN(a_shape.size(), b_shape.size()) - 1;
   for (; i > -1; i--) {
     if (!(a_shape[i] == b_shape[i] || a_shape[i] == 1 || b_shape[i] == 1))
@@ -123,9 +134,9 @@ bool _check_broadcastable_shapes(const std::vector<usize> &a_shape,
   return true;
 }
 
-void _calc_broadcast_shape(const std::vector<usize> &a_shape,
-                           const std::vector<usize> &b_shape,
-                           std::vector<usize> &c_shape) {
+static void _calc_broadcast_shape(const std::vector<usize> &a_shape,
+                                  const std::vector<usize> &b_shape,
+                                  std::vector<usize> &c_shape) {
   usize a_ndim = a_shape.size();
   usize b_ndim = b_shape.size();
   usize c_ndim = c_shape.size();
@@ -141,11 +152,10 @@ void _calc_broadcast_shape(const std::vector<usize> &a_shape,
 }
 
 template <typename T>
-GArray<T> _init_broadcast_view(const GArray<T> &a,
-                               std::vector<usize> &target_shape,
-                               usize target_ndim) {
+static GArray<T> _init_broadcast_view(const GArray<T> &a,
+                                      std::vector<usize> &target_shape,
+                                      usize target_ndim) {
 
-  // borrow the data
   GArray<T> view = GArray<T>(a.data, a.shape, false);
 
   view.ndim = target_ndim;
@@ -189,6 +199,9 @@ static void _broadcast_binary_op(const GArray<T> &a, const GArray<T> &b,
   }
 }
 
+// Broadcasting Helper Functions
+// ------------------------------------------------------------------
+
 template <typename T, typename Operation>
 static GArray<T> _element_wise_op(const GArray<T> &a, const GArray<T> &b,
                                   Operation op) {
@@ -224,6 +237,12 @@ static GArray<T> _element_wise_op(const GArray<T> &a, const GArray<T> &b,
   return c;
 }
 
+#undef MIN
+#undef MAX
+
+// ------------------------------------------------------------------
+// Binary Arithmetic Operations
+
 template <typename T> GArray<T> GArray<T>::operator+(const GArray<T> &other) {
   // Ensure shapes match
   return _element_wise_op(*this, other,
@@ -244,6 +263,9 @@ template <typename T> GArray<T> GArray<T>::operator/(const GArray<T> &other) {
   return _element_wise_op(*this, other,
                           [](const T &a, const T &b) { return a / b; });
 }
+
+// Binary Arithmetic Operations
+// ------------------------------------------------------------------
 
 // Types that we'll support for now
 // TODO: Look into supporting types like u8, u16, i8, i16
