@@ -34,12 +34,22 @@ public:
   // owning array
   GArray(T *data, std::vector<usize> shape);
 
-  // -----------------------------------------------------------------------------
+  // ------------------------------------------------------------------
   // Arithmetic Functions - supports broadcasting
   GArray<T> operator+(const GArray<T> &other);
   GArray<T> operator-(const GArray<T> &other);
   GArray<T> operator*(const GArray<T> &other);
   GArray<T> operator/(const GArray<T> &other);
+
+  // ------------------------------------------------------------------
+  // Reshaping Functions
+  // Returns a view on the array, does not modify anything
+  // Does not require cleaning
+
+  GArray<T> t();
+  GArray<T> transpose();
+  GArray<T> reshape(std::vector<usize> new_shape);
+  GArray<T> flatten();
 
   // ~GArray()
 };
@@ -51,9 +61,9 @@ static inline usize _numel(const std::vector<usize> &shape) {
   return num_elements;
 }
 
-// -----------------------------------------------------------------------------
+// ------------------------------------------------------------------
 // Array Initialisation Functions
-//  Moves the shape to the object so that it owns it
+// Moves the shape to the object so that it owns it
 template <typename T> GArray<T> init_with_ones(std::vector<usize> &shape);
 template <typename T> GArray<T> init_with_zeros(std::vector<usize> &shape);
 template <typename T>

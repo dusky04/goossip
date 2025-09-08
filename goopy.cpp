@@ -1,6 +1,8 @@
 #include "goopy.h"
 
+#include <algorithm>
 #include <iostream>
+#include <stdexcept>
 #include <stdlib.h>
 #include <vector>
 
@@ -265,6 +267,41 @@ template <typename T> GArray<T> GArray<T>::operator/(const GArray<T> &other) {
 }
 
 // Binary Arithmetic Operations
+// ------------------------------------------------------------------
+
+// ------------------------------------------------------------------
+// Reshaping Functions
+
+// TODO: Throwing an error fucks up with the cleanup process
+// Investigate that
+template <typename T>
+GArray<T> GArray<T>::reshape(std::vector<usize> new_shape) {
+  usize old_num_elements = _numel(shape);
+  usize new_num_elements = _numel(new_shape);
+
+  if (old_num_elements != new_num_elements)
+    throw std::runtime_error(
+        "RESHAPE ERROR: Total number of elements must remain the same (" +
+        std::to_string(old_num_elements) + " vs " +
+        std::to_string(new_num_elements) + ")");
+
+  return GArray<T>(data, new_shape, false);
+}
+
+// TODO: Cache strides
+template <typename T> GArray<T> GArray<T>::transpose() {
+  std::vector<usize> tranposed_shape(shape.rbegin(), shape.rend());
+  return GArray<T>(data, tranposed_shape, false);
+}
+
+template <typename T> GArray<T> GArray<T>::t() { return transpose(); }
+
+template <typename T> GArray<T> GArray<T>::flatten() {
+  usize num_elements = _numel(shape);
+  return GArray<T>(data, {num_elements}, false);
+}
+
+// Reshaping Functions
 // ------------------------------------------------------------------
 
 // Types that we'll support for now
