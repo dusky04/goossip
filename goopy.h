@@ -45,13 +45,17 @@ public:
   // Reshaping Functions
   // Returns a view on the array, does not modify anything
   // Does not require cleaning
-
   GArray<T> t();
   GArray<T> transpose();
   GArray<T> reshape(std::vector<usize> new_shape);
   GArray<T> flatten();
 
-  // ~GArray()
+  // ------------------------------------------------------------------
+  // Statistic Functions
+  T sum();                   // totals all the elements
+  GArray<T> sum(usize axis); // sums the array along an axis
+
+  ~GArray();
 };
 
 static inline usize _numel(const std::vector<usize> &shape) {
@@ -68,11 +72,14 @@ template <typename T> GArray<T> init_with_ones(std::vector<usize> &shape);
 template <typename T> GArray<T> init_with_zeros(std::vector<usize> &shape);
 template <typename T>
 GArray<T> init_array_with_scalar_value(std::vector<usize> &shape, T val);
+template <typename T> GArray<T> arange(T stop);
+template <typename T> GArray<T> arange(T start, T stop, T step = 1);
 
 // ------------------------------------------------------------------
 // Matrix Multiplication
 // TODO: Try more cache friendly matrix multiplication
 // Convert to blocked matrix multiplication
+// TODO: Add broadcasting support
 template <typename T> GArray<T> matmul(const GArray<T> &a, const GArray<T> &b);
 
 // ------------------------------------------------------------------

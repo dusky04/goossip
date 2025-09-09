@@ -1,6 +1,7 @@
 #include "goopy.h"
 
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 #include <stdexcept>
 #include <stdlib.h>
@@ -20,6 +21,11 @@ GArray<T>::GArray(T *data, std::vector<usize> shape, bool owns)
     : data(data), shape(shape), ndim(shape.size()), itemsize(sizeof(T)),
       owns(owns) {
   _calc_strides();
+}
+
+template <typename T> GArray<T>::~GArray() {
+  if (owns)
+    delete[] data;
 }
 
 template <typename T> void GArray<T>::_calc_strides() {
@@ -79,6 +85,35 @@ template GArray<i32> init_with_ones<i32>(std::vector<usize> &shape);
 template GArray<i64> init_with_ones<i64>(std::vector<usize> &shape);
 template GArray<f32> init_with_ones<f32>(std::vector<usize> &shape);
 template GArray<f64> init_with_ones<f64>(std::vector<usize> &shape);
+
+template <typename T> GArray<T> arange(T start, T stop, T step) {
+  if (stop < start)
+    throw std::runtime_error("RANGE ERROR: Invalid range, stop (" +
+                             std::to_string(stop) + ") is less than start (" +
+                             std::to_string(start) + ")");
+
+  usize num_elements = std::ceil((stop - start) / step);
+  T *data = new T[num_elements];
+
+  for (usize i = 0; i < num_elements; i++)
+    data[i] = start + (i * step);
+
+  return GArray<T>(std::move(data), {num_elements}, true);
+}
+
+template GArray<i32> arange(i32 start, i32 stop, i32 step);
+template GArray<i64> arange(i64 start, i64 stop, i64 step);
+template GArray<f32> arange(f32 start, f32 stop, f32 step);
+template GArray<f64> arange(f64 start, f64 stop, f64 step);
+
+template <typename T> GArray<T> arange(T stop) {
+  return arange(static_cast<T>(0), stop);
+}
+
+template GArray<i32> arange<i32>(i32 stop);
+template GArray<i64> arange<i64>(i64 stop);
+template GArray<f32> arange<f32>(f32 stop);
+template GArray<f64> arange<f64>(f64 stop);
 
 // Array Initialisation Functions
 // ------------------------------------------------------------------
@@ -385,6 +420,27 @@ template <typename T> GArray<T> GArray<T>::flatten() {
 }
 
 // Reshaping Functions
+// ------------------------------------------------------------------
+
+// ------------------------------------------------------------------
+// Statistic Functions
+
+template <typename T> T GArray<T>::sum() {
+  T total = 0;
+  usize num_elements = _numel(shape);
+  for (usize i = 0; i < num_elements; i++)
+    total += data[i];
+  return total;
+}
+
+template <typename T> GArray<T> GArray<T>::sum(usize axis) {
+  if (axis >= ndim)
+    throw std::runtime_error("sum(): axis " + std::to_string(axis) +
+                             " is out of bounds for array of dimension " +
+                             std::to_string(ndim));
+}
+
+// Statistic Functions
 // ------------------------------------------------------------------
 
 // Types that we'll support for now

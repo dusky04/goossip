@@ -1,7 +1,7 @@
 BUILD=build
 TEST=test
 CC=g++
-CFLAGS=-Wall -Wextra -g
+CFLAGS=-Wall -Wextra -g -pedantic
 
 all: main $(BUILD)/goopy.o
 
