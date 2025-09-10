@@ -30,7 +30,6 @@ GArray<T>::GArray(GArray<T> &&other) noexcept
     : data(other.data), shape(std::move(other.shape)),
       strides(std::move(other.strides)), ndim(shape.size()),
       itemsize(other.itemsize), owns(other.owns) {
-  // std::cout << "MOVE CALLED\n";
   other.data = nullptr;
   other.ndim = 0;
   other.itemsize = 0;
@@ -478,19 +477,15 @@ static inline void _sum_along_axis(const GArray<T> &a, GArray<T> &result,
                                    usize axis, usize depth, usize offset_a,
                                    usize offset_r) {
   if (depth == result.ndim) {
-    // std::cout << "------------------------------" << std::endl;
-    // std::cout << "INSIDE BASE CASE: " << std::endl;
-    // std::cout << "------------------------------" << std::endl;
-
     T total = 0;
     for (usize i = 0; i < a.shape[axis]; i++) {
       usize a_idx = offset_a + i * a.strides[axis];
       total += a.data[a_idx];
     }
     result.data[offset_r] = total;
-
     return;
   }
+
   // skip the dimension for `a` when we have depth = axis
   usize a_depth = depth;
   if (a_depth >= axis)
@@ -500,9 +495,6 @@ static inline void _sum_along_axis(const GArray<T> &a, GArray<T> &result,
   for (usize i = 0; i < result.shape[depth]; i++) {
     usize new_offset_a = offset_a + i * a.strides[a_depth];
     usize new_offset_r = offset_r + i * result.strides[depth];
-
-    // std::cout << "NEW OFFSET A: " << new_offset_a << std::endl;
-    // std::cout << "NEW OFFSET R: " << new_offset_r << std::endl;
     _sum_along_axis(a, result, axis, depth + 1, new_offset_a, new_offset_r);
   }
 }

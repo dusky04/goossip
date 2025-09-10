@@ -60,6 +60,7 @@ public:
   // Statistic Functions
   T sum();                   // totals all the elements
   GArray<T> sum(usize axis); // sums the array along an axis
+  // GArray<T> sum(usize axis) &&;
 
   ~GArray();
 };
