@@ -1,7 +1,9 @@
 #pragma once
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <iostream>
 #include <memory>
 #include <vector>
 
@@ -34,6 +36,11 @@ public:
   // owning array
   GArray(T *data, std::vector<usize> shape);
 
+  GArray(const GArray<T> &) = delete;
+  GArray<T> &operator=(const GArray<T> &) = delete;
+
+  GArray(GArray<T> &&other) noexcept;
+
   // ------------------------------------------------------------------
   // Arithmetic Functions - supports broadcasting
   GArray<T> operator+(const GArray<T> &other);
@@ -47,7 +54,9 @@ public:
   // Does not require cleaning
   GArray<T> t();
   GArray<T> transpose();
-  GArray<T> reshape(std::vector<usize> new_shape);
+  GArray<T> reshape(std::vector<usize> new_shape) &;
+  GArray<T> reshape(std::vector<usize> new_shape) &&;
+
   GArray<T> flatten();
 
   // ------------------------------------------------------------------

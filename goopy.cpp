@@ -22,6 +22,21 @@ GArray<T>::GArray(T *data, std::vector<usize> shape, bool owns)
       owns(owns) {
   _calc_strides();
 }
+template <typename T> GArray<T>::GArray(GArray<T> &&other) noexcept {
+  std::cout << "MOVE CALLED\n";
+
+  data = other.data;
+  shape = std::move(other.shape);
+  strides = std::move(other.strides);
+  ndim = shape.size();
+  itemsize = other.itemsize;
+  owns = other.owns;
+
+  other.data = nullptr;
+  other.ndim = 0;
+  other.itemsize = 0;
+  other.owns = false;
+}
 
 template <typename T> GArray<T>::~GArray() {
   if (owns)
@@ -58,7 +73,7 @@ GArray<T> init_array_with_scalar_value(std::vector<usize> &shape, T val) {
   for (usize i = 0; i < num_elements; i++)
     data[i] = val;
 
-  return GArray<T>(std::move(data), std::move(shape));
+  return GArray<T>(data, shape);
 }
 
 template GArray<i32>
@@ -98,7 +113,7 @@ template <typename T> GArray<T> arange(T start, T stop, T step) {
   for (usize i = 0; i < num_elements; i++)
     data[i] = start + (i * step);
 
-  return GArray<T>(std::move(data), {num_elements}, true);
+  return GArray<T>(data, {num_elements}, true);
 }
 
 template GArray<i32> arange(i32 start, i32 stop, i32 step);
@@ -107,7 +122,7 @@ template GArray<f32> arange(f32 start, f32 stop, f32 step);
 template GArray<f64> arange(f64 start, f64 stop, f64 step);
 
 template <typename T> GArray<T> arange(T stop) {
-  return arange(static_cast<T>(0), stop);
+  return arange(static_cast<T>(0), stop, static_cast<T>(1));
 }
 
 template GArray<i32> arange<i32>(i32 stop);
@@ -316,7 +331,7 @@ static inline void _matmul_2D(const GArray<T> &a, const GArray<T> &b,
   for (usize i = 0; i < m; i++) {
     // iterate over the columns of matrix b
     for (usize j = 0; j < q; j++) {
-      f64 sum = 0;
+      T sum = 0;
       for (usize k = 0; k < n; k++) {
         usize ai =
             offset_a + i * a.strides[a.ndim - 2] + k * a.strides[a.ndim - 1];
@@ -393,7 +408,7 @@ template GArray<f64> matmul(const GArray<f64> &a, const GArray<f64> &b);
 // TODO: Throwing an error fucks up with the cleanup process
 // Investigate that
 template <typename T>
-GArray<T> GArray<T>::reshape(std::vector<usize> new_shape) {
+GArray<T> GArray<T>::reshape(std::vector<usize> new_shape) & {
   usize old_num_elements = _numel(shape);
   usize new_num_elements = _numel(new_shape);
 
@@ -404,6 +419,25 @@ GArray<T> GArray<T>::reshape(std::vector<usize> new_shape) {
         std::to_string(new_num_elements) + ")");
 
   return GArray<T>(data, new_shape, false);
+}
+
+template <typename T>
+GArray<T> GArray<T>::reshape(std::vector<usize> new_shape) && {
+
+  usize old_num_elements = _numel(shape);
+  usize new_num_elements = _numel(new_shape);
+
+  if (old_num_elements != new_num_elements)
+    throw std::runtime_error(
+        "RESHAPE ERROR: Total number of elements must remain the same (" +
+        std::to_string(old_num_elements) + " vs " +
+        std::to_string(new_num_elements) + ")");
+
+  shape = new_shape;
+  ndim = new_shape.size();
+  _calc_strides();
+
+  return std::move(*this);
 }
 
 // TODO: Cache strides
@@ -433,12 +467,12 @@ template <typename T> T GArray<T>::sum() {
   return total;
 }
 
-template <typename T> GArray<T> GArray<T>::sum(usize axis) {
-  if (axis >= ndim)
-    throw std::runtime_error("sum(): axis " + std::to_string(axis) +
-                             " is out of bounds for array of dimension " +
-                             std::to_string(ndim));
-}
+// template <typename T> GArray<T> GArray<T>::sum(usize axis) {
+//   if (axis >= ndim)
+//     throw std::runtime_error("sum(): axis " + std::to_string(axis) +
+//                              " is out of bounds for array of dimension " +
+//                              std::to_string(ndim));
+// }
 
 // Statistic Functions
 // ------------------------------------------------------------------
