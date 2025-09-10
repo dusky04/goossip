@@ -5,6 +5,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <stdlib.h>
+#include <utility>
 #include <vector>
 
 // TODO: Look into move constructors
@@ -22,16 +23,14 @@ GArray<T>::GArray(T *data, std::vector<usize> shape, bool owns)
       owns(owns) {
   _calc_strides();
 }
-template <typename T> GArray<T>::GArray(GArray<T> &&other) noexcept {
-  std::cout << "MOVE CALLED\n";
 
-  data = other.data;
-  shape = std::move(other.shape);
-  strides = std::move(other.strides);
-  ndim = shape.size();
-  itemsize = other.itemsize;
-  owns = other.owns;
-
+// Move Constructor
+template <typename T>
+GArray<T>::GArray(GArray<T> &&other) noexcept
+    : data(other.data), shape(std::move(other.shape)),
+      strides(std::move(other.strides)), ndim(shape.size()),
+      itemsize(other.itemsize), owns(other.owns) {
+  // std::cout << "MOVE CALLED\n";
   other.data = nullptr;
   other.ndim = 0;
   other.itemsize = 0;
@@ -441,12 +440,18 @@ GArray<T> GArray<T>::reshape(std::vector<usize> new_shape) && {
 }
 
 // TODO: Cache strides
-template <typename T> GArray<T> GArray<T>::transpose() {
-  std::vector<usize> tranposed_shape(shape.rbegin(), shape.rend());
-  return GArray<T>(data, tranposed_shape, false);
+template <typename T> GArray<T> GArray<T>::transpose() & {
+  GArray<T> view(data, shape, false);
+  std::reverse(shape.begin(), shape.end());
+  std::reverse(strides.begin(), strides.end());
+  return view;
 }
 
-template <typename T> GArray<T> GArray<T>::t() { return transpose(); }
+template <typename T> GArray<T> GArray<T>::transpose() && {
+  std::reverse(shape.begin(), shape.end());
+  std::reverse(strides.begin(), strides.end());
+  return std::move(*this);
+}
 
 template <typename T> GArray<T> GArray<T>::flatten() {
   usize num_elements = _numel(shape);

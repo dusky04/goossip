@@ -52,8 +52,8 @@ public:
   // Reshaping Functions
   // Returns a view on the array, does not modify anything
   // Does not require cleaning
-  GArray<T> t();
-  GArray<T> transpose();
+  GArray<T> transpose() &;
+  GArray<T> transpose() &&;
   GArray<T> reshape(std::vector<usize> new_shape) &;
   GArray<T> reshape(std::vector<usize> new_shape) &&;
 
