@@ -53,14 +53,23 @@ public:
   GArray<T> transpose() &&;
   GArray<T> reshape(std::vector<usize> new_shape) &;
   GArray<T> reshape(std::vector<usize> new_shape) &&;
-
   GArray<T> flatten();
 
   // ------------------------------------------------------------------
   // Statistic Functions
   T sum();                   // totals all the elements
   GArray<T> sum(usize axis); // sums the array along an axis
-  // GArray<T> sum(usize axis) &&;
+  T mean();
+  GArray<T> mean(usize axis);
+  T std();
+  GArray<T> std(usize axis);
+  T min();
+  GArray<T> min(usize axis);
+  T max();
+  GArray<T> max(usize axis);
+
+  // argmin()
+  // argmax()
 
   ~GArray();
 };
