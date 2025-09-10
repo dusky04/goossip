@@ -1,10 +1,7 @@
 #pragma once
 
-#include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <iostream>
-#include <memory>
 #include <vector>
 
 // 'modern' type aliases

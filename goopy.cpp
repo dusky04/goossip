@@ -160,6 +160,7 @@ static void _print_array(const GArray<T> &a, usize cur_depth, usize offset) {
 
 template <typename T> void print_array(const GArray<T> &a) {
   _print_array(a, 0, 0);
+  std::cout << '\n';
 }
 template void print_array<i32>(const GArray<i32> &a);
 template void print_array<i64>(const GArray<i64> &a);
@@ -442,8 +443,8 @@ GArray<T> GArray<T>::reshape(std::vector<usize> new_shape) && {
 // TODO: Cache strides
 template <typename T> GArray<T> GArray<T>::transpose() & {
   GArray<T> view(data, shape, false);
-  std::reverse(shape.begin(), shape.end());
-  std::reverse(strides.begin(), strides.end());
+  std::reverse(view.shape.begin(), view.shape.end());
+  std::reverse(view.strides.begin(), view.strides.end());
   return view;
 }
 
@@ -472,12 +473,58 @@ template <typename T> T GArray<T>::sum() {
   return total;
 }
 
-// template <typename T> GArray<T> GArray<T>::sum(usize axis) {
-//   if (axis >= ndim)
-//     throw std::runtime_error("sum(): axis " + std::to_string(axis) +
-//                              " is out of bounds for array of dimension " +
-//                              std::to_string(ndim));
-// }
+template <typename T>
+static inline void _sum_along_axis(const GArray<T> &a, GArray<T> &result,
+                                   usize axis, usize depth, usize offset_a,
+                                   usize offset_r) {
+  if (depth == result.ndim) {
+    // std::cout << "------------------------------" << std::endl;
+    // std::cout << "INSIDE BASE CASE: " << std::endl;
+    // std::cout << "------------------------------" << std::endl;
+
+    T total = 0;
+    for (usize i = 0; i < a.shape[axis]; i++) {
+      usize a_idx = offset_a + i * a.strides[axis];
+      total += a.data[a_idx];
+    }
+    result.data[offset_r] = total;
+
+    return;
+  }
+  // skip the dimension for `a` when we have depth = axis
+  usize a_depth = depth;
+  if (a_depth >= axis)
+    a_depth += 1;
+
+  // we are the nth dimension, loop through all the elements
+  for (usize i = 0; i < result.shape[depth]; i++) {
+    usize new_offset_a = offset_a + i * a.strides[a_depth];
+    usize new_offset_r = offset_r + i * result.strides[depth];
+
+    // std::cout << "NEW OFFSET A: " << new_offset_a << std::endl;
+    // std::cout << "NEW OFFSET R: " << new_offset_r << std::endl;
+    _sum_along_axis(a, result, axis, depth + 1, new_offset_a, new_offset_r);
+  }
+}
+
+template <typename T> GArray<T> GArray<T>::sum(usize axis) {
+  if (axis >= ndim)
+    throw std::runtime_error("sum(): axis " + std::to_string(axis) +
+                             " is out of bounds for array of dimension " +
+                             std::to_string(ndim));
+  std::vector<usize> new_shape;
+  new_shape.reserve(ndim - 1);
+  for (usize i = 0; i < ndim; i++) {
+    if (i == axis)
+      continue;
+    new_shape.emplace_back(shape[i]);
+  }
+
+  auto result = init_with_zeros<T>(new_shape);
+  _sum_along_axis(*this, result, axis, 0, 0, 0);
+
+  return result;
+}
 
 // Statistic Functions
 // ------------------------------------------------------------------
